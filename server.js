@@ -11,7 +11,9 @@ const bodyParser = require("body-parser");
 const deviceID = "xxxxxxxxxxx"
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
-
+const googleMapsClient = require('@google/maps').createClient({
+  key: 'AIzaSyBFK34TXntFYOlrjIf73KusUbPWEBBNT2A' //replace with the API key you got from Google
+});
 
 const dir = process.env.DATA_DIR || "."
 var downlink_link = ""
@@ -33,7 +35,7 @@ const read = function () {
 }
 
 // special reading function to extract the data from the JSON file and transform them into something usable for our graph.
-const readchart = function () {
+const readchartTemperature = function () {
     return new Promise(function (resolve, reject) {
       // start reading the file again
       fs.readFile(file, "utf8", function (err, data) {
@@ -58,6 +60,81 @@ const readchart = function () {
     })
 }
 
+const readchartPressure = function () {
+  return new Promise(function (resolve, reject) {
+    // start reading the file again
+    fs.readFile(file, "utf8", function (err, data) {
+      if (err) {
+        return reject(err)
+      }
+      // put the data into a variable
+      var datajson = JSON.parse(data || "[]")
+      // initialize an empty array
+      var tab = []
+      //for each element of our json file we get the temperature and the date
+      for (var i=0; i < datajson.length; i++){
+        var obj = datajson[i]
+        var temp = obj.pressure
+        var date = obj.date
+        // and we push it to the previously empty array
+        tab.push([date, temp])
+      }
+      // return the full array with the "graph-ready" data
+      return resolve(tab || "[]")
+    })
+  })
+}
+
+const readchartHumidity = function () {
+  return new Promise(function (resolve, reject) {
+    // start reading the file again
+    fs.readFile(file, "utf8", function (err, data) {
+      if (err) {
+        return reject(err)
+      }
+      // put the data into a variable
+      var datajson = JSON.parse(data || "[]")
+      // initialize an empty array
+      var tab = []
+      //for each element of our json file we get the temperature and the date
+      for (var i=0; i < datajson.length; i++){
+        var obj = datajson[i]
+        var temp = obj.humidity
+        var date = obj.date
+        // and we push it to the previously empty array
+        tab.push([date, temp])
+      }
+      // return the full array with the "graph-ready" data
+      return resolve(tab || "[]")
+    })
+  })
+}
+
+const readGPS = function (){
+  return new Promise(function (resolve, reject) {
+    // start reading the file again
+    fs.readFile(file, "utf8", function (err, data) {
+      if (err) {
+        return reject(err)
+      }
+      // put the data into a variable
+      var datajson = JSON.parse(data || "[]")
+      // initialize an empty array
+      var tab = []
+      //for each element of our json file we get the temperature and the date
+      for (var i=0; i < datajson.length; i++){
+        var obj = datajson[i]
+        var lng = obj.longitude
+        var lat = obj.latitude
+        var date = obj.date
+        // and we push it to the previously empty array
+        tab.push([date, lng, lat])
+      }
+      // return the full array with the "graph-ready" data
+      return resolve(tab[tab.length-1] || "[]")
+    })
+  })
+}
 // function writing the data to the JSON file.
 const write = function (data) {
     return new Promise(function (resolve, reject) {
@@ -75,7 +152,7 @@ const write = function (data) {
 function writeFields(value) {
     return read().then(function(data){
       var now = new Date().toISOString()
-      var newEntry = {'date':now, 'temperature':value.temperature, 'altitude':value.altitude}
+      var newEntry = {'date':now, 'temperature':value.temperature, 'altitude':value.altitude*100,'humidity':value.humidity,'pressure':value.pressure,'longitude':value.lon,'latitude':value.lat*0.0566935837}
       data.push(newEntry)
       return write(data)
     })
@@ -87,11 +164,23 @@ app.get("/", function(req, res){
     res.sendFile(__dirname + "/index.html")
 })
 
-app.get('/chartdata', function(req, res) {
-    console.log('GET CHARTDATA')
-    return readchart().then(res.json.bind(res))
+app.get('/chartdata/temperature', function(req, res) {
+    console.log('GET CHARTDATA TEMPERATURE')
+    return readchartTemperature().then(res.json.bind(res))
 })
 
+app.get('/chartdata/humidity', function(req, res) {
+  console.log('GET CHARTDATA HUMIDITY')
+  return readchartHumidity().then(res.json.bind(res))
+})
+app.get('/chartdata/pressure', function(req, res) {
+  console.log('GET CHARTDATA PRESSURE')
+  return readchartPressure().then(res.json.bind(res))
+})
+app.get("/generator", function(req, res) {
+  console.log('GET LAT/LONG')
+  return readGPS().then(res.json.bind(res))
+});
 //the treament of the POST request made to the /on URL
 app.post("/on", function(req, res) {
     // we create the message to be sent

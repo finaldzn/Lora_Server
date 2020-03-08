@@ -1,10 +1,19 @@
 <html>
   <head>
+    <style>
+      #map {  width: 100%;  height: 400px;  background-color: grey;}
+    </style>
   </head>
   <body>
     <h1>LORA WAN DASHBOARD</h1>
-    <div id="graph">
-      <line-chart :data="data.data" xtitle="Date" ytitle="Temperature"></line-chart>
+    <div id="graphTemperature">
+      <line-chart :data="data.data" xtitle="Date" ytitle="Temperature(C°)"></line-chart>
+    </div>
+    <div id="graphHumidity">
+      <line-chart :data="data.data" xtitle="Date" ytitle="Humidity (%)"></line-chart>
+    </div>
+    <div id="graphPressure">
+      <line-chart :data="data.data" xtitle="Date" ytitle="Pressure (bar)"></line-chart>
     </div>
     <div class="on-off">
       <div id="turn_on">
@@ -16,23 +25,27 @@
         <form class="turn-off" id="turn_off" method="POST" action="/off">          <button type="submit" value="Led off" id="off">Off</button>        </form>
       </div>
     </div>
+    <div id="map"></div>    
+    <script async defer  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBFK34TXntFYOlrjIf73KusUbPWEBBNT2A&callback=initMap"></script>
     <script src="https://unpkg.com/vue"></script>
     <script src="https://unpkg.com/chart.js@2.5.0/dist/Chart.bundle.js"></script>
     <script src="https://unpkg.com/chartkick@2.2.3"></script>
     <script src="https://unpkg.com/vue-chartkick@0.2.0/dist/vue-chartkick.js"></script>
     <ul id="uplink"></ul>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>    <script>
-      var app_data = {}
-      var graph = new Vue({
-        el: "#graph",
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      //Temperature
+      var app_data_temperature = {}
+      var graphTemperature = new Vue({
+        el: "#graphTemperature",
         data: {
-          data: app_data,
+          data: app_data_temperature,
         }
       })
 
-      function fetchData() {
-        fetch("/chartdata")
+      function fetchDataTemperature() {
+        fetch("/chartdata/temperature")
         .then(function (response) {
           if (response.status >= 200 && response.status < 300) {
             return Promise.resolve(response.json())
@@ -41,12 +54,94 @@
           }
         })
         .then(function (data) {
-          Vue.set(app_data, 'data', data)
+          Vue.set(app_data_temperature, 'data', data)
           //setTimeout(fetchData, 1000)
         })
       }
-      fetchData()
+      fetchDataTemperature()
     </script>
+    <script>
+      //Pressure
+      var app_data_pressure = {}
+      var graphPressure = new Vue({
+        el: "#graphPressure",
+        data: {
+          data: app_data_pressure,
+        }
+      })
+
+      function fetchDataPressure() {
+        fetch("/chartdata/pressure")
+        .then(function (response) {
+          if (response.status >= 200 && response.status < 300) {
+            return Promise.resolve(response.json())
+          } else {
+            return Promise.reject(new Error(response.statusText))
+          }
+        })
+        .then(function (data) {
+          Vue.set(app_data_pressure, 'data', data)
+          //setTimeout(fetchData, 1000)
+        })
+      }
+      fetchDataPressure()
+    </script>
+    <script>
+      //Humidity
+      var app_data_humidity = {}
+      var graphHumidity = new Vue({
+        el: "#graphHumidity",
+        data: {
+          data: app_data_humidity,
+        }
+      })
+
+      function fetchDataHumidity() {
+        fetch("/chartdata/humidity")
+        .then(function (response) {
+          if (response.status >= 200 && response.status < 300) {
+            return Promise.resolve(response.json())
+          } else {
+            return Promise.reject(new Error(response.statusText))
+          }
+        })
+        .then(function (data) {
+          Vue.set(app_data_humidity, 'data', data)
+          //setTimeout(fetchData, 1000)
+        })
+      }
+      fetchDataHumidity()
+    </script>     
+    <script>
+      function initMap() {
+        fetch("/generator")
+        .then(function (response) {
+          if (response.status >= 200 && response.status < 300) {
+            return Promise.resolve(response.json())
+          } else {
+            return Promise.reject(new Error(response.statusText))
+          }
+        })
+        .then(function (data) {
+          console.log(data)
+          var uluru = {
+                  lat: parseFloat(48.8955),
+                  lng: parseFloat(3.866624)
+              };
+          console.log(uluru)
+          var map = new google.maps.Map(document.getElementById("map"), {
+              zoom: 4,
+              center: uluru
+          });
+          var marker = new google.maps.Marker({
+              position: uluru,
+              map: map,
+              title: 'My device'
+          });
+        })
+      }
+      initMap()
+  </script>
     <script>
     $(function () {
       var socket = io();
