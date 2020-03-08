@@ -12,7 +12,7 @@ const deviceID = "xxxxxxxxxxx"
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 const googleMapsClient = require('@google/maps').createClient({
-  key: 'AIzaSyBFK34TXntFYOlrjIf73KusUbPWEBBNT2A' //replace with the API key you got from Google
+  key: '' //replace with the API key you got from Google
 });
 
 const dir = process.env.DATA_DIR || "."
